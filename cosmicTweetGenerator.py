@@ -9,14 +9,15 @@ from modelArchitecture import *
 
 def generateTweet(model, pattern, inToChar, eosMarkers):
     pattern = seed[:]
+    outDim = len(intToChar)
     endIndex = 0
     result = ""
     for i in range(140):
         x = np.reshape(pattern, (1, len(pattern), 1))
-        x = x / float(len(intToChar))
+        x = x / float(outDim)
         prediction = model.predict(x, verbose=0)
         if pattern[-1] == 1 or pattern[-1] == 0: # whitespace or newline
-            index = np.random.choice(range(79),p=prediction[0])
+            index = np.random.choice(range(outDim),p=prediction[0])
         else:
             index = np.argmax(prediction)
         result += intToChar[index]
@@ -59,6 +60,7 @@ if __name__=='__main__':
             seeds.append(seed[-50:])
 
     # load model weights and compile
+    model = getModel(seqlen, len(charToInt))
     model.load_weights(weightsFile)
     model.compile(loss='categorical_crossentropy', optimizer='adam')
 
