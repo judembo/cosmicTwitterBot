@@ -7,7 +7,7 @@ from keras.models import load_model
 from credentials import *
 from modelArchitecture import *
 
-def generateTweet(model, pattern, inToChar, eosMarkers):
+def generateTweet(model, pattern, inToChar, eosMarkers, iterations):
     pattern = seed[:]
     outDim = len(intToChar)
     endIndex = 0
@@ -30,8 +30,11 @@ def generateTweet(model, pattern, inToChar, eosMarkers):
     if endIndex > 0:
         # keep text only until the last end-of-sentence marker that was generated
         return result[:endIndex+1]
+    elif iterations < 10:
+        return generateTweet(model, seed, inToChar, eosMarkers, iterations+1)
     else:
-        # if there is no end-of-sentence marker, at least only keep entire words
+        # if there is no end-of-sentence marker after 10 iterations,
+        # at least only keep entire words
         endIndex = result.rfind(' ')
         return result[:endIndex]
 
@@ -56,8 +59,10 @@ if __name__=='__main__':
     seeds = []
     with open(seedsFile, 'r') as f:
         for line in f:
-            seed = [charToInt[c] for c in list(line)]
-            seeds.append(seed[-50:])
+            chars = list(line)
+            if len(line) >= 50:
+                seed = [charToInt[c] for c in chars]
+                seeds.append(seed[-50:])
 
     # load model weights and compile
     model = getModel(seqlen, len(charToInt))
@@ -69,7 +74,7 @@ if __name__=='__main__':
             # generate seed
             start = np.random.randint(0, len(seeds)-1)
             seed = seeds[start]
-            tweet = generateTweet(model, seed, intToChar, eosMarkers)
+            tweet = generateTweet(model, seed, intToChar, eosMarkers, 0)
             api.update_status(status=tweet)
         except tweepy.TweepError as e:
             print(e.reason)
